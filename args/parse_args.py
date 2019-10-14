@@ -6,7 +6,8 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description="Example of argument parsing")
     parser.add_argument("argument_1")
-    parser.add_argument("--debug", action='store_true', description="Enable debug mode")
+    parser.add_argument("multiple_args", metavar="multiple", nargs="+")
+    parser.add_argument("--debug", action='store_true', help="Enable debug mode")
     return parser.parse_args()
 
 if __name__ == "__main__":
