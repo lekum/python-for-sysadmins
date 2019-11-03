@@ -1,0 +1,67 @@
+#! /usr/bin/env python
+
+from csv import DictReader
+from pathlib import Path
+from datetime import datetime
+from argparse import ArgumentParser
+
+
+def parse_args():
+    """
+    Parse the CLI args
+    """
+    parser = ArgumentParser()
+    parser.add_argument("--dest-dir", help="Output dir to store the results", default="output_dir")
+    parser.add_argument("--search-paths", nargs='*', default=["."], help="List of paths to recursively search for files")
+    return parser.parse_args()
+
+
+def collect_csv(source_dir, dest_dir):
+    """
+    Scan for csvs in a source_dir recursively.
+
+    Place each file in a path of <dest_dir>/<species>/<YYYYMMDDHHMM>.csv
+    """
+    source_dir = Path(source_dir)
+    dest_dir = Path(dest_dir)
+    for csvfile in source_dir.rglob("*.csv"):
+        species = normalized_species(csvfile)
+        species_dir = dest_dir / species
+        species_dir.mkdir(exist_ok=True, parents=True)
+        date_time = normalized_datetime(csvfile)
+        print(f"Renaming {csvfile} to {species_dir / (date_time + '.csv')}")
+        csvfile.rename(species_dir / (date_time + ".csv"))
+
+
+def normalized_species(csv_filename):
+    """
+    Return the species of the column "species" of the csv_filename.
+
+    Normalize it via lowercasing and transforming spaces into "_"
+    """
+    with open(csv_filename) as csvfilename:
+        reader = DictReader(csvfilename)
+        first_row = next(reader)
+        return first_row.get("species").lower().replace(" ", "_")
+
+
+def normalized_datetime(csv_filename):
+    """
+    Return the datetime of the column "observation_date" of the csv_filename.
+
+    Normalize it with the format YYYYMMDDHHMM
+    """
+    with open(csv_filename) as csvfilename:
+        reader = DictReader(csvfilename)
+        first_row = next(reader)
+        src_date_fmt = "%d/%m/%Y %H:%M"
+        dst_date_fmt = "%Y%m%d%H%M"
+        obs_date = datetime.strptime(first_row.get("observation_date"), src_date_fmt)
+        return obs_date.strftime(dst_date_fmt)
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
+    for path in args.search_paths:
+        collect_csv(path, args.dest_dir)
